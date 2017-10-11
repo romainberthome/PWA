@@ -1,6 +1,7 @@
 
 (function() {
   'use strict';
+
   var injectedForecast = {
     key: 'newyork',
     label: 'New York, NY',
@@ -104,6 +105,13 @@
       app.container.appendChild(card);
       app.visibleCards[data.key] = card;
     }
+    
+// Verify if the data is newer than the one we already have
+    var dateElem = card.querySelector('.date');
+    if (dateElem.getAttribute('data-dt') >= data.currently.time){
+      return;
+    }
+
     card.querySelector('.description').textContent = data.currently.summary;
     card.querySelector('.date').textContent =
       new Date(data.currently.time * 1000);
@@ -153,6 +161,17 @@
   // Gets a forecast for a specific city and update the card with the data
   app.getForecast = function(key, label) {
     var url = weatherAPIUrlBase + key + '.json';
+    if("caches" in window){
+      caches.match(url).then(function(response){
+        if(response){
+          response.json().then(function(json){
+            json.key = key;
+            json.label = label;
+            app.updateForecastCard(json);
+          });
+        }
+      });
+    }
     // Make the XHR to get the data, then update the card
     var request = new XMLHttpRequest();
     request.onreadystatechange = function() {
@@ -200,5 +219,15 @@
         }
       });
     });
+
+    /* Add service worker there */
+
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker
+      .register("./service-worker.js")
+      .then(function(){
+        console.log("Service worker Registered");
+      });
+    } ;
 
 })();
